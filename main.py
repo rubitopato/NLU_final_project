@@ -1,6 +1,6 @@
 
-from conllu_reader import ConlluReader
-from algorithm import ArcEager
+from classes.conllu_reader import ConlluReader
+from classes.algorithm import ArcEager
 
 def read_file(reader, path, inference):
     trees = reader.read_conllu_file(path, inference)
