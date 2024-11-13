@@ -198,7 +198,9 @@ class ArcEager():
         Returns:
             bool: True if a LEFT-ARC transition is valid in the current state, False otherwise.
         """
-        raise NotImplementedError
+        if state.S[-1].id == 0:
+            return False
+        
 
     def LA_is_correct(self, state: State) -> bool:
         """
@@ -312,17 +314,25 @@ class ArcEager():
             if self.LA_is_valid(state) and self.LA_is_correct(state):
                 #Add current state 'state' (the input) and the transition taken (the desired output) to the list of samples
                 #Update the state by applying the LA transition using the function apply_transition
-                raise NotImplementedError
+                s = state.S[-1]
+                transition = Transition(self.LA, s.dep)
+                samples.append(Sample(state, transition))
+                self.apply_transition(state, transition)
 
             elif self.RA_is_valid(state) and self.RA_is_correct(state):
                 #Add current state 'state' (the input) and the transition taken (the desired output) to the list of samples
                 #Update the state by applying the RA transition using the function apply_transition
-                raise NotImplementedError
+                s = state.S[-1]
+                transition = Transition(self.RA, s.dep)
+                samples.append(Sample(state, transition))
+                self.apply_transition(state, transition)
 
             elif self.REDUCE_is_valid(state) and self.REDUCE_is_correct(state):
                 #Add current state 'state' (the input) and the transition taken (the desired output) to the list of samples
                 #Update the state by applying the REDUCE transition using the function apply_transition
-                raise NotImplementedError
+                transition = Transition(self.REDUCE)
+                samples.append(Sample(state, transition))
+                self.apply_transition(state, transition)
             else:
                 #If no other transiton can be applied, it's a SHIFT transition
                 transition = Transition(self.SHIFT)
@@ -368,19 +378,22 @@ class ArcEager():
             # LEFT-ARC transition logic: to be implemented
             # Add an arc to the state from the top of the buffer to the top of the stack
             # Remove from the state the top word from the stack
-            raise NotImplementedError
+            state.A.add((b.id, dep, s.id))
+            del state.S[-1]
 
         elif t == self.RA and self.RA_is_valid(state): 
             # RIGHT-ARC transition
             # Add an arc to the state from the stack top to the buffer head with the specified dependency
             # Move from the state the buffer head to the stack
             # Remove from the state the first item from the buffer
-            raise NotImplementedError
+            state.A.add((s.id, dep, b.id))
+            state.S.append(b)
+            del state.B[0]
 
-        elif t == self.REDUCE and self.has_head(s, state.A): 
+        elif t == self.REDUCE and self.REDUCE_is_valid(s, state.A): 
             # REDUCE transition logic: to be implemented
             # Remove from state the word from the top of the stack
-            raise NotImplementedError
+            del state.S[-1]
 
         else:
             # SHIFT transition logic: Already implemented! Use it as a basis to implement the others
