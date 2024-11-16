@@ -115,7 +115,28 @@ class Sample(object):
 
                 Output: ['ROOT', 'Distribution', 'license', 'does', 'ROOT_UPOS', 'NOUN', 'NOUN', 'AUX']
         """
-        raise NotImplementedError
+        aux_stack = self.state.S
+        aux_buffer = self.state.B
+        
+        if len(aux_stack) > nstack_feats:
+            aux_stack = aux_stack[-nstack_feats:]
+            
+        if len(aux_buffer) > nbuffer_feats:
+            aux_buffer = aux_buffer[:nbuffer_feats]
+        
+        stack_word_list = [token.form for token in aux_stack]
+        stack_upos_list = [token.upos for token in aux_stack]
+        buffer_word_list = [token.form for token in aux_buffer]
+        buffer_upos_list = [token.upos for token in aux_buffer]
+        
+        stack_word_list = ['<PAD>']*(nstack_feats-len(stack_word_list)) + stack_word_list
+        stack_upos_list = ['<PAD>']*(nstack_feats-len(stack_upos_list)) + stack_upos_list
+        buffer_word_list = buffer_word_list + ['<PAD>']*(nbuffer_feats-len(buffer_word_list))
+        buffer_upos_list = buffer_upos_list + ['<PAD>']*(nbuffer_feats-len(buffer_upos_list))
+        
+        return stack_word_list + buffer_word_list + stack_upos_list + buffer_upos_list
+            
+        
     
 
     def __str__(self):
@@ -533,6 +554,5 @@ if __name__ == "__main__":
 
     # # Now, create a Sample instance using the state and transition
     # sample_instance = Sample(state, shift_transition)
-
     # # To display the created Sample instance
     # print("Sample:\n", sample_instance)
