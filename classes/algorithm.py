@@ -200,6 +200,11 @@ class ArcEager():
         """
         if state.S[-1].id == 0:
             return False
+        elif any((state.B[0].id, state.S[-1].id) == (a[0], a[2]) for a in state.A):
+            return False
+        else:
+            return True
+        
         
 
     def LA_is_correct(self, state: State) -> bool:
@@ -215,7 +220,10 @@ class ArcEager():
         Returns:
             bool: True if a LEFT-ARC transition is the correct action in the current state, False otherwise.
         """
-        raise NotImplementedError
+        if state.S[-1].head == state.B[0].id:
+            return True
+        else:
+            return False
     
     def RA_is_correct(self, state: State) -> bool:
         """
@@ -230,7 +238,10 @@ class ArcEager():
         Returns:
             bool: True if a RIGHT-ARC transition is the correct action in the current state, False otherwise.
         """
-        raise NotImplementedError
+        if state.B[0].head == state.S[-1].id:
+            return True
+        else:
+            return False
 
     def RA_is_valid(self, state: State) -> bool:
         """
@@ -246,7 +257,10 @@ class ArcEager():
         Returns:
             bool: True if a RIGHT-ARC transition can be validly applied in the current state, False otherwise.
         """
-        raise NotImplementedError
+        if any((state.S[-1].id, state.B[0].id) == (a[0], a[2]) for a in state.A):
+            return False
+        else:
+            return True
 
     def REDUCE_is_correct(self, state: State) -> bool:
         """
@@ -267,7 +281,11 @@ class ArcEager():
         """
         #It is correct to do if there is no word in the state buffer  (state.B) which head is 
         #the word on the top of the stack (state.S[-1])
-        raise NotImplementedError
+        for word in state.B:
+            if word.head == state.S[-1].id:
+                return False
+        
+        return True
 
     def REDUCE_is_valid(self, state: State) -> bool:
         """
@@ -283,7 +301,10 @@ class ArcEager():
         Returns:
             bool: True if a REDUCE transition is valid in the current state, False otherwise.
         """
-        raise NotImplementedError
+        if any((state.B[0].id, state.S[-1].id) == (a[0], a[2]) for a in state.A):
+            return True
+        else:
+            return False
 
     def oracle(self, sent: list['Token']) -> list['Sample']:
         """
@@ -310,7 +331,7 @@ class ArcEager():
 
         #Applies the transition system until a final configuration state is reached
         while not self.final_state(state):
-            
+            print(state)
             if self.LA_is_valid(state) and self.LA_is_correct(state):
                 #Add current state 'state' (the input) and the transition taken (the desired output) to the list of samples
                 #Update the state by applying the LA transition using the function apply_transition
@@ -318,14 +339,16 @@ class ArcEager():
                 transition = Transition(self.LA, s.dep)
                 samples.append(Sample(state, transition))
                 self.apply_transition(state, transition)
+                print(transition)
 
             elif self.RA_is_valid(state) and self.RA_is_correct(state):
                 #Add current state 'state' (the input) and the transition taken (the desired output) to the list of samples
                 #Update the state by applying the RA transition using the function apply_transition
-                s = state.S[-1]
-                transition = Transition(self.RA, s.dep)
+                b = state.B[0]
+                transition = Transition(self.RA, b.dep)
                 samples.append(Sample(state, transition))
                 self.apply_transition(state, transition)
+                print(transition)
 
             elif self.REDUCE_is_valid(state) and self.REDUCE_is_correct(state):
                 #Add current state 'state' (the input) and the transition taken (the desired output) to the list of samples
@@ -333,6 +356,7 @@ class ArcEager():
                 transition = Transition(self.REDUCE)
                 samples.append(Sample(state, transition))
                 self.apply_transition(state, transition)
+                print(transition)
             else:
                 #If no other transiton can be applied, it's a SHIFT transition
                 transition = Transition(self.SHIFT)
@@ -340,6 +364,7 @@ class ArcEager():
                 samples.append(Sample(state, transition))
                 #Update the state by applying the SHIFT transition using the function apply_transition
                 self.apply_transition(state,transition)
+                print(transition)
 
 
         #When the oracle ends, the generated arcs must
@@ -459,54 +484,55 @@ if __name__ == "__main__":
     #Checking that is a final state
     print (f"Is the initial state a valid final state (buffer is empty)? {arc_eager.final_state(state)}\n")
 
-    # Applying a SHIFT transition
-    transition1 = Transition(arc_eager.SHIFT)
-    arc_eager.apply_transition(state, transition1)
-    print("State after applying the SHIFT transition:")
-    print(state, "\n")
+    arc_eager.oracle(tree)
+    # # Applying a SHIFT transition
+    # transition1 = Transition(arc_eager.SHIFT)
+    # arc_eager.apply_transition(state, transition1)
+    # print("State after applying the SHIFT transition:")
+    # print(state, "\n")
 
-    #Obtaining the gold_arcs of the sentence with the function gold_arcs
-    gold_arcs = arc_eager.gold_arcs(tree)
-    print (f"Set of gold arcs: {gold_arcs}\n\n")
+    # #Obtaining the gold_arcs of the sentence with the function gold_arcs
+    # gold_arcs = arc_eager.gold_arcs(tree)
+    # print (f"Set of gold arcs: {gold_arcs}\n\n")
 
 
-    print("**************************************************")
-    print("*  Creating instances of the class Transition    *")
-    print("**************************************************")
+    # print("**************************************************")
+    # print("*  Creating instances of the class Transition    *")
+    # print("**************************************************")
 
-    # Creating a SHIFT transition
-    shift_transition = Transition(ArcEager.SHIFT)
-    # Printing the created transition
-    print(f"Created Transition: {shift_transition}")  # Output: Created Transition: SHIFT
+    # # Creating a SHIFT transition
+    # shift_transition = Transition(ArcEager.SHIFT)
+    # # Printing the created transition
+    # print(f"Created Transition: {shift_transition}")  # Output: Created Transition: SHIFT
 
-    # Creating a LEFT-ARC transition with a specific dependency type
-    left_arc_transition = Transition(ArcEager.LA, "nsubj")
-    # Printing the created transition
-    print(f"Created Transition: {left_arc_transition}")
+    # # Creating a LEFT-ARC transition with a specific dependency type
+    # left_arc_transition = Transition(ArcEager.LA, "nsubj")
+    # # Printing the created transition
+    # print(f"Created Transition: {left_arc_transition}")
 
-    # Creating a RIGHT-ARC transition with a specific dependency type
-    right_arc_transition = Transition(ArcEager.RA, "amod")
-    # Printing the created transition
-    print(f"Created Transition: {right_arc_transition}")
+    # # Creating a RIGHT-ARC transition with a specific dependency type
+    # right_arc_transition = Transition(ArcEager.RA, "amod")
+    # # Printing the created transition
+    # print(f"Created Transition: {right_arc_transition}")
 
-    # Creating a REDUCE transition
-    reduce_transition = Transition(ArcEager.REDUCE)
-    # Printing the created transition
-    print(f"Created Transition: {reduce_transition}")  # Output: Created Transition: SHIFT
+    # # Creating a REDUCE transition
+    # reduce_transition = Transition(ArcEager.REDUCE)
+    # # Printing the created transition
+    # print(f"Created Transition: {reduce_transition}")  # Output: Created Transition: SHIFT
 
-    print()
-    print("**************************************************")
-    print("*     Creating instances of the class  Sample    *")
-    print("**************************************************")
+    # print()
+    # print("**************************************************")
+    # print("*     Creating instances of the class  Sample    *")
+    # print("**************************************************")
 
-    # For demonstration, let's create a dummy State instance
-    state = arc_eager.create_initial_state(tree)  # Replace with actual state initialization as per your implementation
+    # # For demonstration, let's create a dummy State instance
+    # state = arc_eager.create_initial_state(tree)  # Replace with actual state initialization as per your implementation
 
-    # Create a Transition instance. For example, a SHIFT transition
-    shift_transition = Transition(ArcEager.SHIFT)
+    # # Create a Transition instance. For example, a SHIFT transition
+    # shift_transition = Transition(ArcEager.SHIFT)
 
-    # Now, create a Sample instance using the state and transition
-    sample_instance = Sample(state, shift_transition)
+    # # Now, create a Sample instance using the state and transition
+    # sample_instance = Sample(state, shift_transition)
 
-    # To display the created Sample instance
-    print("Sample:\n", sample_instance)
+    # # To display the created Sample instance
+    # print("Sample:\n", sample_instance)
