@@ -306,7 +306,11 @@ class ArcEager():
             if word.head == state.S[-1].id:
                 return False
         
-        return True
+        for arc in state.A:
+            if state.S[-1].head in arc: #peligro inminente
+                return True
+        
+        return False
 
     def REDUCE_is_valid(self, state: State) -> bool:
         """
@@ -322,10 +326,10 @@ class ArcEager():
         Returns:
             bool: True if a REDUCE transition is valid in the current state, False otherwise.
         """
-        if any((state.B[0].id, state.S[-1].id) == (a[0], a[2]) for a in state.A):
-            return True
-        else:
-            return False
+        for arc in state.A:
+            if state.S[-1].id in arc:
+                return True
+        return False
 
     def oracle(self, sent: list['Token']) -> list['Sample']:
         """
@@ -390,7 +394,7 @@ class ArcEager():
 
         #When the oracle ends, the generated arcs must
         #match exactly the gold arcs, otherwise the obtained sequence of transitions is not correct
-        assert self.gold_arcs(sent) == state.A, f"Gold arcs {self.gold_arcs(sent)} and generated arcs {state.A} do not match"
+        assert self.gold_arcs(sent) == state.A, f"\nGold arcs: {self.gold_arcs(sent)}\n Generated arcs :{state.A}"
     
         return samples         
     
@@ -436,7 +440,7 @@ class ArcEager():
             state.S.append(b)
             del state.B[0]
 
-        elif t == self.REDUCE and self.REDUCE_is_valid(s, state.A): 
+        elif t == self.REDUCE and self.REDUCE_is_valid(state): 
             # REDUCE transition logic: to be implemented
             # Remove from state the word from the top of the stack
             del state.S[-1]
@@ -489,12 +493,20 @@ if __name__ == "__main__":
     print("Creating the initial state for the sentence: 'The cat is sleeping.' \n")
 
     tree = [
-        Token(0, "ROOT", "ROOT", "_", "_", "_", "_", "_"),
-        Token(1, "The", "the", "DET", "_", "Definite=Def|PronType=Art", 2, "det"),
-        Token(2, "cat", "cat", "NOUN", "_", "Number=Sing", 4, "nsubj"),
-        Token(3, "is", "be", "AUX", "_", "Mood=Ind|Tense=Pres|VerbForm=Fin", 4, "cop"),
-        Token(4, "sleeping", "sleep", "VERB", "_", "VerbForm=Ger", 0, "root"),
-        Token(5, ".", ".", "PUNCT", "_", "_", 4, "punct")
+        Token(0, 'ROOT', 'ROOT', 'ROOT_UPOS', 'ROOT_CPOS', 'ROOT_FEATS', '_', '_'),
+        Token(1, 'Distribution', 'distribution', 'NOUN', 'S', 'Number=Sing', 7, 'nsubj'),
+        Token(2, 'of', 'of', 'ADP', 'E', '_', 4, 'case'),
+        Token(3, 'this', 'this', 'DET', 'DD', 'Number=Sing|PronType=Dem', 4, 'det'),
+        Token(4, 'license', 'license', 'NOUN', 'S', 'Number=Sing', 1, 'nmod'),
+        Token(5, 'does', 'do', 'AUX', 'VM', 'Mood=Ind|Number=Sing|Person=3|Tense=Pres|VerbForm=Fin', 7, 'aux'),
+        Token(6, 'not', 'not', 'PART', 'PART', 'Polarity=Neg', 7, 'advmod'),
+        Token(7, 'create', 'create', 'VERB', 'V', 'Mood=Ind|Number=Plur|Tense=Pres|VerbForm=Fin', 0, 'root'),
+        Token(8, 'an', 'a', 'DET', 'RI', 'Definite=Ind|Number=Sing|PronType=Art', 12, 'det'),
+        Token(9, 'attorney', 'attorney', 'NOUN', 'S', 'Number=Sing', 12, 'nmod'),
+        Token(10, '-', '-', 'PUNCT', 'FF', '_', 9, 'punct'),
+        Token(11, 'client', 'client', 'NOUN', 'S', 'Number=Sing', 9, 'compound'),
+        Token(12, 'relationship', 'relationship', 'NOUN', 'S', 'Number=Sing', 7, 'obj'),
+        Token(13, '.', '.', 'PUNCT', 'FS', '_', 7, 'punct')
     ]
 
     arc_eager = ArcEager()
