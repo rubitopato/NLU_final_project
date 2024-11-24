@@ -1,5 +1,8 @@
 from conllu_token import Token
 import tensorflow as tf
+from algorithm import ArcEager, Sample
+from state import State
+import numpy as np
 
 class ParserMLP:
     """
@@ -43,6 +46,7 @@ class ParserMLP:
             epochs (int): The number of epochs for training the model.
             batch_size (int): The batch size used during model training.
         """
+        self.arc_eager = ArcEager()
         raise NotImplementedError
     
     def train(self, training_samples: list['Sample'], dev_samples: list['Sample']):
@@ -70,6 +74,16 @@ class ParserMLP:
         """
         raise NotImplementedError
     
+    def is_valid(self, state: State, transition: str):
+        if transition == "LA":
+            return self.arc_eager.LA_is_valid(state)
+        elif transition == "RA":
+            return self.arc_eager.RA_is_valid(state)
+        elif transition == "REDUCE":
+            return self.arc_eager.REDUCE_is_valid(state)
+        else:
+            return True
+    
     def run(self, sents: list['Token']):
         """
         Executes the model on a list of sentences to perform dependency parsing.
@@ -84,18 +98,42 @@ class ParserMLP:
 
         # Main Steps for Processing Sentences:
         # 1. Initialize: Create the initial state for each sentence.
-        # 2. Feature Representation: Convert states to their corresponding list of features.
-        # 3. Model Prediction: Use the model to predict the next transition and dependency type for all current states.
-        # 4. Transition Sorting: For each prediction, sort the transitions by likelihood using numpy.argsort, 
-        #    and select the most likely dependency type with argmax.
-        # 5. Validation Check: Verify if the selected transition is valid for each prediction. If not, select the next most likely one.
-        # 6. State Update: Apply the selected actions to update all states, and create a list of new states.
-        # 7. Final State Check: Remove sentences that have reached a final state.
-        # 8. Iterative Process: Repeat steps 2 to 7 until all sentences have reached their final state.
-
-
-        raise NotImplementedError
-
+        batch_states = []
+        for sentence in sents:
+            batch_states.append(self.arc_eager.create_initial_state(sentence))
+            
+        while batch_states:
+            # 2. Feature Representation: Convert states to their corresponding list of features.
+            batch_state_feats = []
+            for state in batch_states:
+                sample = Sample(state, None)
+                batch_state_feats.append(sample.state_to_feats(3,3))
+            # 3. Model Prediction: Use the model to predict the next transition and dependency type for all current states.
+            batch_transitions, batch_dependencies = self.model.predict(batch_state_feats)
+            # 4. Transition Sorting: For each prediction, sort the transitions by likelihood using numpy.argsort, 
+            #    and select the most likely dependency type with argmax.
+            batch_valid_transitions = []
+            for i in range(len(batch_transitions)):
+                j = 0
+                sorted_indices = np.argsort(batch_transitions[i])[::-1]  # Invertimos el orden para tener las más altas primero
+                most_likely_transition = batch_transitions[i][sorted_indices[j]]      
+            # 5. Validation Check: Verify if the selected transition is valid for each prediction. If not, select the next most likely one.
+            while not self.is_valid(batch_states[i], most_likely_transition):
+                j += 1
+                most_likely_transition = batch_transitions[i][sorted_indices[j]]
+                batch_valid_transitions.append(most_likely_transition)
+            # 6. State Update: Apply the selected actions to update all states, and create a list of new states.
+            new_states = []
+            for i, state in enumerate(batch_states):
+                self.arc_eager.apply_transition(state, batch_valid_transitions[i])
+                new_states.append(state)
+            # 7. Final State Check: Remove sentences that have reached a final state.
+            batch_states = []
+            for state in new_states:
+                if not self.arc_eager.final_state(state):
+                    batch_states.append(state)
+            # 8. Iterative Process: Repeat steps 2 to 7 until all sentences have reached their final state.
+        
 
 if __name__ == "__main__":
     
