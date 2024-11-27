@@ -77,7 +77,8 @@ class ParserMLP:
         outputs_actions = keras.layers.Dense(actions_size, activation='softmax')(dense)
         outputs_relations = keras.layers.Dense(relations_size, activation='softmax')(dense)
 
-        raise NotImplementedError
+        self.model = Keras.models.model(inputs=[inputs_words, inputs_pos], outputs=[outputs_actions,outputs_relations])
+        self.model = summary
     
     def train(self, training_samples: list['Sample'], dev_samples: list['Sample']):
         """
