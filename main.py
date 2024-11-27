@@ -31,6 +31,7 @@ We don't remove them from test set set, because for those we only will do infere
 train_trees = reader.remove_non_projective_trees(train_trees)
 dev_trees = reader.remove_non_projective_trees(dev_trees)
 # print(train_trees)
+# print(train_trees)
 print ("Total training trees after removing non-projective sentences", len(train_trees))
 print ("Total dev trees after removing non-projective sentences", len(dev_trees))
 
@@ -49,6 +50,7 @@ pre_processor = PreProcessor()
 # 2. Use the 'oracle' function in ArcEager to generate all training samples, creating a dataset for training the neural model.
 training_set = pre_processor.create_dataset(arc_eager=arc_eager, data_trees=train_trees[:100])
 print(training_set[0])
+print(training_set[0])
 
 # 3. Utilize the same 'oracle' function to generate development samples for model tuning and evaluation.
 dev_set = pre_processor.create_dataset(arc_eager, dev_trees[:10])
@@ -57,14 +59,16 @@ dev_set = pre_processor.create_dataset(arc_eager, dev_trees[:10])
 # TODO: Implement the 'state_to_feats' function in the Sample class.
 # This function should convert the current parser state into a list of features for use by the neural model classifier.
 
-# ENCODING
+# Encoding
 training_set = pre_processor.encode_relations(training_set)
-print(pre_processor.relation_dict_length)
-# ENCODING WITH TOKENIZER
-# sentences = pre_processor.get_training_sentences(training_set)
-# pre_processor.train_tokenizer(sentences)
-# training_set = pre_processor.encode_data(training_set)
-# print(training_set[0])
+
+# Training tokenizer
+pre_processor.train_tokenizer(training_set)
+
+# Encoding with tokenizer
+encoded_training_set = pre_processor.encode_data(training_set)
+
+print(encoded_training_set[0])
 
 
 # TODO: Define and implement the neural model in the 'model.py' module.
