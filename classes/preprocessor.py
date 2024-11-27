@@ -43,6 +43,8 @@ class PreProcessor:
                 unique_relations.update(df['relation'].unique())
         
         relation_dict = {relation: index for index, relation in enumerate(unique_relations, start=1)}
+        
+        self.relation_dict_length = len(relation_dict)
         return relation_dict
 
     def get_training_sentences(self, dataset_array):
@@ -89,35 +91,29 @@ class PreProcessor:
         for tree in data_trees:
             sentence_result = arc_eager.oracle(tree)
             
-            stacks = []
-            buffers = []
             actions = []
+            sample_feats_array = []
             relations = []
             
             for data_step in sentence_result:
-                # Buffer
-                full_buffer = data_step.state.B
-                buffer = [buffer_elements.__str__().split("\t")[1] for buffer_elements in full_buffer]
                 
-                # Stack
-                full_stack = data_step.state.S
-                stack = [stack_elements.__str__().split("\t")[1] for stack_elements in full_stack]
-                
+                sample_feats = data_step.state_to_feats(nbuffer_feats = 3,
+                                         nstack_feats = 3)
+                sample_feats_array.append(sample_feats)
+
+
                 # Actions/Relations
                 splitted_transition = data_step.transition.__str__().split(";")
                 action = self.encode_actions(splitted_transition[0]) 
                 relation = splitted_transition[1] if len(splitted_transition) > 1 else None
                 
-                stacks.append(stack)
-                buffers.append(buffer)
                 actions.append(action)
                 relations.append(relation)
             
             sentence_df = pd.DataFrame({
-                'stack': stacks,
-                'buffer': buffers,
+                'sample_feats':sample_feats_array,
                 'action': actions,
-                'relation': relations
+                'relation': relations,
             })
             dataset.append(sentence_df)
         
