@@ -8,11 +8,17 @@ class PreProcessor:
 
     def train_tokenizer(self, train_input_data):
 
-        data = [s for s in train_input_data['sentences'].to_list()]
+        encoded_datasets = []
+        all_tokens = set()
 
-        self.tokenizer.fit_on_texts(data)
-        self.word_index = len(self.tokenizer.word_index)+1   
-        print(self.tokenizer.word_index)
+        for df in train_input_data:
+            for data in df.iterrows():
+                for token in data[1].sample_feats:
+                    all_tokens.add(token)
+
+        self.tokenizer.fit_on_texts(all_tokens)
+        self.word_index_length = len(self.tokenizer.word_index)+1   
+        print(self.word_index_length)
 
     def encode_actions(self, action):
         action_dict = {
@@ -62,25 +68,16 @@ class PreProcessor:
         return concatenated_df
     
     def encode_data(self, dataset_array):
+
         encoded_datasets = []
 
         for df in dataset_array:
-            # Verificar si las columnas 'stack' y 'buffer' existen
-            if 'stack' in df.columns and 'buffer' in df.columns:
-                # Hacer una copia del DataFrame para no modificar el original
                 encoded_df = df.copy()
 
-                # Codificar la columna 'stack' usando texts_to_sequences
-                encoded_df['stack'] = encoded_df['stack'].apply(
+                encoded_df['sample_feats'] = encoded_df['sample_feats'].apply(
                     lambda words: self.tokenizer.texts_to_sequences([words])[0] if isinstance(words, list) else words
                 )
                 
-                # Codificar la columna 'buffer' usando texts_to_sequences
-                encoded_df['buffer'] = encoded_df['buffer'].apply(
-                    lambda words: self.tokenizer.texts_to_sequences([words])[0] if isinstance(words, list) else words
-                )
-
-                # Añadir el DataFrame codificado a la lista de resultados
                 encoded_datasets.append(encoded_df)
         
         return encoded_datasets
