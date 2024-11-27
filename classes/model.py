@@ -3,6 +3,7 @@ import tensorflow as tf
 from .algorithm import ArcEager, Sample
 from .state import State
 import numpy as np
+from tf import keras
 
 class ParserMLP:
     """
@@ -35,7 +36,12 @@ class ParserMLP:
         Feel free to add other parameters and functions you might need to create your model
     """
 
-    def __init__(self, word_emb_dim: int = 100, hidden_dim: int = 64, 
+    def __init__(self,
+                 word_vocab_size: int = 10000, pos_vocab_size: int = 40,
+                 word_emb_dim: int = 100, pos_emb_dim: int = 100,
+                 relations_size: int = 27, actions_size: int = 4,
+                 n_top: int = 5, hidden_dim: int = 64,
+                 
                  epochs: int = 1, batch_size: int = 64):
         """
         Initializes the ParserMLP class with the specified dimensions and training parameters.
@@ -47,6 +53,30 @@ class ParserMLP:
             batch_size (int): The batch size used during model training.
         """
         self.arc_eager = ArcEager()
+
+        self.word_emb_dim = word_emb_dim
+        self.hidden_dim = hidden_dim
+        self.epochs = epochs
+        self.batch_size = batch_size
+
+        self.word_vocab_size = word_vocab_size
+        self.pos_vocab_size = pos_vocab_size
+        self.output_units = output_units
+
+        #Inputs layers
+        inputs_words = keras.layers.input(shape = (2*n_top,))
+        inputs_pos = keras.layers.input(shape = (2*n_top,))
+
+        #Embedding layers
+        embedding_words = keras.layers.Embedding(input_dim = words_vocab_size, output_dim = word_emb_dim, mask_zero = True) (inputs_words)
+        embedding_pos = keras.layers.Embedding(input_dim = pos_vocab_size, output_dim = pos_emb_dim, mask_zero = True) (inputs_pos)
+        embedding_total = keras.layers.Concatenate()([embedding_words,embedding_pos])
+
+        #Dense and outputs layers
+        dense = keras.layers.Dense(hidden_dim, activation='relu') (embedding_total)
+        outputs_actions = keras.layers.Dense(actions_size, activation='softmax')(dense)
+        outputs_relations = keras.layers.Dense(relations_size, activation='softmax')(dense)
+
         raise NotImplementedError
     
     def train(self, training_samples: list['Sample'], dev_samples: list['Sample']):
@@ -60,6 +90,18 @@ class ParserMLP:
             training_samples (list[Sample]): A list of training samples for the parser.
             dev_samples (list[Sample]): A list of development samples used for model validation.
         """
+
+        X_train_words, X_train_pos, y_train_actions, y_train_relations = self.process_samples(training_samples)
+        X_dev_words, X_dev_pos, y_dev_actions, y_dev_relations = self.process_samples(dev_samples)
+
+        history = self.model.fit(
+            [X_train_words, X_train_pos], [y_train_actions, y_train_relations],
+            validation_data=([X_dev_words, X_dev_pos], [y_dev_actions, y_dev_relations]),
+            epochs=self.epochs,
+            batch_size=self.batch_size,
+        )
+
+
         raise NotImplementedError
 
     def evaluate(self, samples: list['Sample']):
