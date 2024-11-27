@@ -1,6 +1,7 @@
-
 from classes.conllu_reader import ConlluReader
 from classes.algorithm import ArcEager
+from classes.preprocessor import PreProcessor
+import keras
 
 def read_file(reader, path, inference):
     trees = reader.read_conllu_file(path, inference)
@@ -10,17 +11,16 @@ def read_file(reader, path, inference):
         print (token)
     print ()
     return trees
-
-
+    
 """
 ALREADY IMPLEMENTED
 Read and convert CoNLLU files into tree structures
 """
 # Initialize the ConlluReader
 reader = ConlluReader()
-train_trees = read_file(reader,path="en_partut-ud-train_clean.conllu", inference=False)
-dev_trees = read_file(reader,path="en_partut-ud-dev_clean.conllu", inference=False)
-test_trees = read_file(reader,path="en_partut-ud-test_clean.conllu", inference=True)
+train_trees = read_file(reader,path="dataset/en_partut-ud-train_clean.conllu", inference=False)
+dev_trees = read_file(reader,path="dataset/en_partut-ud-dev_clean.conllu", inference=False)
+test_trees = read_file(reader,path="dataset/en_partut-ud-test_clean.conllu", inference=True)
 
 """
 We remove the non-projective sentences from the training and development set,
@@ -37,17 +37,34 @@ print ("Total dev trees after removing non-projective sentences", len(dev_trees)
 #Create and instance of the ArcEager
 arc_eager = ArcEager()
 
+
 print ("\n ------ TODO: Implement the rest of the assignment ------")
 
-# TODO: Complete the ArcEager algorithm class.
+# Complete the ArcEager algorithm class.
 # 1. Implement the 'oracle' function and auxiliary functions to determine the correct parser actions.
 #    Note: The SHIFT action is already implemented as an example.
 #    Additional Note: The 'create_initial_state()', 'final_state()', and 'gold_arcs()' functions are already implemented.
+
+pre_processor = PreProcessor()
 # 2. Use the 'oracle' function in ArcEager to generate all training samples, creating a dataset for training the neural model.
+training_set = pre_processor.create_dataset(arc_eager=arc_eager, data_trees=train_trees[:100])
+
 # 3. Utilize the same 'oracle' function to generate development samples for model tuning and evaluation.
+dev_set = pre_processor.create_dataset(arc_eager, dev_trees[:10])
+
 
 # TODO: Implement the 'state_to_feats' function in the Sample class.
 # This function should convert the current parser state into a list of features for use by the neural model classifier.
+
+# ENCODING
+training_set = pre_processor.encode_relations(training_set)
+
+# ENCODING WITH TOKENIZER
+sentences = pre_processor.get_training_sentences(training_set)
+pre_processor.train_tokenizer(sentences)
+training_set = pre_processor.encode_data(training_set)
+print(training_set[0])
+
 
 # TODO: Define and implement the neural model in the 'model.py' module.
 # 1. Train the model on the generated training dataset.

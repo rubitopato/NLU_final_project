@@ -1,5 +1,6 @@
-from state import State
-from conllu_token import Token
+from .state import State
+from .conllu_token import Token
+import copy
 
 
 class Transition(object):
@@ -26,7 +27,7 @@ class Transition(object):
         return self._dependency
 
     def __str__(self):
-        return f"{self._action}-{self._dependency}" if self._dependency else str(self._action)
+        return f"{self._action};{self._dependency}" if self._dependency else str(self._action)
 
 
 class Sample(object):
@@ -356,40 +357,47 @@ class ArcEager():
 
         #Applies the transition system until a final configuration state is reached
         while not self.final_state(state):
-            print(state)
+            # print(state)
             if self.LA_is_valid(state) and self.LA_is_correct(state):
                 #Add current state 'state' (the input) and the transition taken (the desired output) to the list of samples
                 #Update the state by applying the LA transition using the function apply_transition
                 s = state.S[-1]
                 transition = Transition(self.LA, s.dep)
-                samples.append(Sample(state, transition))
+                
+                
+                deep_copy = copy.deepcopy(state)
+                samples.append(Sample(deep_copy, transition))
                 self.apply_transition(state, transition)
-                print(transition)
+                # print(transition)
 
             elif self.RA_is_valid(state) and self.RA_is_correct(state):
                 #Add current state 'state' (the input) and the transition taken (the desired output) to the list of samples
                 #Update the state by applying the RA transition using the function apply_transition
                 b = state.B[0]
                 transition = Transition(self.RA, b.dep)
-                samples.append(Sample(state, transition))
+
+                deep_copy = copy.deepcopy(state)
+                samples.append(Sample(deep_copy, transition))
                 self.apply_transition(state, transition)
-                print(transition)
+                # print(transition)
 
             elif self.REDUCE_is_valid(state) and self.REDUCE_is_correct(state):
                 #Add current state 'state' (the input) and the transition taken (the desired output) to the list of samples
                 #Update the state by applying the REDUCE transition using the function apply_transition
                 transition = Transition(self.REDUCE)
-                samples.append(Sample(state, transition))
+                deep_copy = copy.deepcopy(state)
+                samples.append(Sample(deep_copy, transition))
                 self.apply_transition(state, transition)
-                print(transition)
+                # print(transition)
             else:
                 #If no other transiton can be applied, it's a SHIFT transition
                 transition = Transition(self.SHIFT)
                 #Add current state 'state' (the input) and the transition taken (the desired output) to the list of samples
-                samples.append(Sample(state, transition))
+                deep_copy = copy.deepcopy(state)
+                samples.append(Sample(deep_copy, transition))
                 #Update the state by applying the SHIFT transition using the function apply_transition
                 self.apply_transition(state,transition)
-                print(transition)
+                # print(transition)
 
 
         #When the oracle ends, the generated arcs must

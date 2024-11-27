@@ -1,7 +1,7 @@
-from conllu_token import Token
+from .conllu_token import Token
 import tensorflow as tf
-from algorithm import ArcEager, Sample
-from state import State
+from .algorithm import ArcEager, Sample
+from .state import State
 import numpy as np
 
 class ParserMLP:
