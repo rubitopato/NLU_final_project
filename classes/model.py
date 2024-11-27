@@ -44,8 +44,8 @@ class ParserMLP:
     def __init__(self,
                  word_vocab_size: int = 10000, pos_vocab_size: int = 40,
                  word_emb_dim: int = 100, pos_emb_dim: int = 100,
-                 relations_size: int = 27, actions_size: int = 4,
-                 n_top: int = 5, hidden_dim: int = 64,
+                 relations_size: int = 38, actions_size: int = 4,
+                 n_top: int = 3, hidden_dim: int = 64,
                  
                  epochs: int = 1, batch_size: int = 64):
         """
@@ -73,22 +73,26 @@ class ParserMLP:
         inputs_words = keras.layers.Input(shape = (2*n_top,))
         inputs_pos = keras.layers.Input(shape = (2*n_top,))
 
-        #Embedding layers
-        embedding_words = keras.layers.Embedding(input_dim = word_vocab_size, output_dim = word_emb_dim, mask_zero = True) (inputs_words)
-        embedding_pos = keras.layers.Embedding(input_dim = pos_vocab_size, output_dim = pos_emb_dim, mask_zero = True) (inputs_pos)
+        # #Embedding layers
+        embedding_words = keras.layers.Embedding(input_dim = 6320, output_dim = 128, input_length=6) (inputs_words)
+        embedding_pos = keras.layers.Embedding(input_dim = 6320, output_dim = 128, input_length=6) (inputs_pos)
         embedding_total = keras.layers.Concatenate()([embedding_words,embedding_pos])
 
-        #Dense and outputs layers
-        dense = keras.layers.Dense(hidden_dim, activation='relu') (embedding_total)
+        flaten = keras.layers.Flatten()(embedding_total)
+
+        # #Dense and outputs layers
+        dense = keras.layers.Dense(128, activation='relu')(flaten)
         outputs_actions = keras.layers.Dense(actions_size, activation='softmax')(dense)
-        outputs_relations = keras.layers.Dense(relations_size, activation='softmax')(dense)
+        outputs_relations = keras.layers.Dense(44, activation='softmax')(dense)
         
         self.model = keras.models.Model(inputs=[inputs_words, inputs_pos], outputs=[outputs_actions,outputs_relations])
         self.model.compile(
             optimizer = "adam",
-            loss = "categorical_crossentropy",
+            loss = "sparse_categorical_crossentropy",
             metrics = ["accuracy"]
         )
+        
+        self.model.summary()
     
     def train(self, training_samples: pd.DataFrame, dev_samples: pd.DataFrame):
         """
@@ -105,8 +109,9 @@ class ParserMLP:
         dev_samples[['dev_samples_words', 'dev_samples_pos']] = dev_samples['sample_feats'].apply(lambda x: pd.Series(dividir_array_en_mitades(x)))
 
         history = self.model.fit(
-            training_samples["training_samples_words"], training_samples["training_samples_pos"],
-            validation_data=(dev_samples["dev_samples_words"], dev_samples["dev_samples_pos"]),
+            [np.array(training_samples["training_samples_words"].tolist()), np.array(training_samples["training_samples_pos"].tolist())],
+            [np.array(training_samples["action"].to_list()), np.array(training_samples["relation"].to_list())],
+            validation_data=([np.array(dev_samples["dev_samples_words"].to_list()), np.array(dev_samples["dev_samples_pos"].to_list())],[np.array(dev_samples["action"].to_list()), np.array(dev_samples["relation"].to_list())]),
             epochs=self.epochs,
             batch_size=self.batch_size,
         )

@@ -50,10 +50,10 @@ print ("\n ------ TODO: Implement the rest of the assignment ------")
 
 pre_processor = PreProcessor()
 # 2. Use the 'oracle' function in ArcEager to generate all training samples, creating a dataset for training the neural model.
-training_set = pre_processor.create_dataset(arc_eager=arc_eager, data_trees=train_trees[:100])
+training_set = pre_processor.create_dataset(arc_eager=arc_eager, data_trees=train_trees)
 
 # 3. Utilize the same 'oracle' function to generate development samples for model tuning and evaluation.
-dev_set = pre_processor.create_dataset(arc_eager, dev_trees[:10])
+dev_set = pre_processor.create_dataset(arc_eager, dev_trees[:100])
 
 
 # TODO: Implement the 'state_to_feats' function in the Sample class.

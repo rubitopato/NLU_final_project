@@ -22,10 +22,10 @@ class PreProcessor:
 
     def encode_actions(self, action):
         action_dict = {
-            "RIGHT-ARC": 1,
-            "LEFT-ARC": 2,
-            "SHIFT": 3,
-            "REDUCE": 4
+            "RIGHT-ARC": 0,
+            "LEFT-ARC": 1,
+            "SHIFT": 2,
+            "REDUCE": 3
         }
         return action_dict.get(action, None) 
 
@@ -47,8 +47,8 @@ class PreProcessor:
         for df in dataset_array:
             if 'relation' in df.columns:
                 unique_relations.update(df['relation'].unique())
-        
-        relation_dict = {relation: index for index, relation in enumerate(unique_relations, start=1)}
+        print(len(unique_relations))
+        relation_dict = {relation: index for index, relation in enumerate(unique_relations)}
         
         self.relation_dict_length = len(relation_dict)
         return relation_dict
