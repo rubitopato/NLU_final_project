@@ -3,7 +3,12 @@ import tensorflow as tf
 from .algorithm import ArcEager, Sample
 from .state import State
 import numpy as np
-from tf import keras
+import pandas as pd
+import keras
+
+def dividir_array_en_mitades(array):
+    mitad = len(array) // 2
+    return array[:mitad], array[mitad:]
 
 class ParserMLP:
     """
@@ -61,14 +66,15 @@ class ParserMLP:
 
         self.word_vocab_size = word_vocab_size
         self.pos_vocab_size = pos_vocab_size
-        self.output_units = output_units
+        self.output_units = actions_size
+        self.relations_size = relations_size
 
         #Inputs layers
-        inputs_words = keras.layers.input(shape = (2*n_top,))
-        inputs_pos = keras.layers.input(shape = (2*n_top,))
+        inputs_words = keras.layers.Input(shape = (2*n_top,))
+        inputs_pos = keras.layers.Input(shape = (2*n_top,))
 
         #Embedding layers
-        embedding_words = keras.layers.Embedding(input_dim = words_vocab_size, output_dim = word_emb_dim, mask_zero = True) (inputs_words)
+        embedding_words = keras.layers.Embedding(input_dim = word_vocab_size, output_dim = word_emb_dim, mask_zero = True) (inputs_words)
         embedding_pos = keras.layers.Embedding(input_dim = pos_vocab_size, output_dim = pos_emb_dim, mask_zero = True) (inputs_pos)
         embedding_total = keras.layers.Concatenate()([embedding_words,embedding_pos])
 
@@ -76,10 +82,15 @@ class ParserMLP:
         dense = keras.layers.Dense(hidden_dim, activation='relu') (embedding_total)
         outputs_actions = keras.layers.Dense(actions_size, activation='softmax')(dense)
         outputs_relations = keras.layers.Dense(relations_size, activation='softmax')(dense)
-
-        raise NotImplementedError
+        
+        self.model = keras.models.Model(inputs=[inputs_words, inputs_pos], outputs=[outputs_actions,outputs_relations])
+        self.model.compile(
+            optimizer = "adam",
+            loss = "categorical_crossentropy",
+            metrics = ["accuracy"]
+        )
     
-    def train(self, training_samples: list['Sample'], dev_samples: list['Sample']):
+    def train(self, training_samples: pd.DataFrame, dev_samples: pd.DataFrame):
         """
         Trains the MLP model using the provided training and development samples.
 
@@ -90,19 +101,17 @@ class ParserMLP:
             training_samples (list[Sample]): A list of training samples for the parser.
             dev_samples (list[Sample]): A list of development samples used for model validation.
         """
-
-        X_train_words, X_train_pos, y_train_actions, y_train_relations = self.process_samples(training_samples)
-        X_dev_words, X_dev_pos, y_dev_actions, y_dev_relations = self.process_samples(dev_samples)
+        training_samples[['training_samples_words', 'training_samples_pos']] = training_samples['sample_feats'].apply(lambda x: pd.Series(dividir_array_en_mitades(x)))
+        dev_samples[['dev_samples_words', 'dev_samples_pos']] = dev_samples['sample_feats'].apply(lambda x: pd.Series(dividir_array_en_mitades(x)))
 
         history = self.model.fit(
-            [X_train_words, X_train_pos], [y_train_actions, y_train_relations],
-            validation_data=([X_dev_words, X_dev_pos], [y_dev_actions, y_dev_relations]),
+            training_samples["training_samples_words"], training_samples["training_samples_pos"],
+            validation_data=(dev_samples["dev_samples_words"], dev_samples["dev_samples_pos"]),
             epochs=self.epochs,
             batch_size=self.batch_size,
         )
-
-
-        raise NotImplementedError
+        
+        return history
 
     def evaluate(self, samples: list['Sample']):
         """
@@ -114,7 +123,6 @@ class ParserMLP:
         Parameters:
             samples (list[Sample]): A list of samples to evaluate the model's performance.
         """
-        raise NotImplementedError
     
     def is_valid(self, state: State, transition: str):
         if transition == "LA":

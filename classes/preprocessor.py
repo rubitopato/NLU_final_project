@@ -4,7 +4,7 @@ import keras.preprocessing
 class PreProcessor:
 
     def __init__(self):
-        self.tokenizer = keras.preprocessing.text.Tokenizer(oov_token='<OOV>')
+        self.tokenizer = keras.preprocessing.text.Tokenizer(oov_token='<OOV>', filters='')
 
     def train_tokenizer(self, train_input_data):
 

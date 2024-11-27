@@ -2,6 +2,8 @@ from classes.conllu_reader import ConlluReader
 from classes.algorithm import ArcEager
 from classes.preprocessor import PreProcessor
 import keras
+import pandas as pd
+from classes.model import ParserMLP
 
 def read_file(reader, path, inference):
     trees = reader.read_conllu_file(path, inference)
@@ -49,8 +51,6 @@ print ("\n ------ TODO: Implement the rest of the assignment ------")
 pre_processor = PreProcessor()
 # 2. Use the 'oracle' function in ArcEager to generate all training samples, creating a dataset for training the neural model.
 training_set = pre_processor.create_dataset(arc_eager=arc_eager, data_trees=train_trees[:100])
-print(training_set[0])
-print(training_set[0])
 
 # 3. Utilize the same 'oracle' function to generate development samples for model tuning and evaluation.
 dev_set = pre_processor.create_dataset(arc_eager, dev_trees[:10])
@@ -61,14 +61,21 @@ dev_set = pre_processor.create_dataset(arc_eager, dev_trees[:10])
 
 # Encoding
 training_set = pre_processor.encode_relations(training_set)
-
+dev_set = pre_processor.encode_relations(dev_set)
 # Training tokenizer
 pre_processor.train_tokenizer(training_set)
 
 # Encoding with tokenizer
 encoded_training_set = pre_processor.encode_data(training_set)
-
+encoded_dev_set = pre_processor.encode_data(dev_set)
 print(encoded_training_set[0])
+
+full_training_dataframe = pd.concat(encoded_training_set, ignore_index=True)
+full_dev_dataframe = pd.concat(encoded_dev_set, ignore_index=True)
+
+model = ParserMLP()
+
+model.train(full_training_dataframe, full_dev_dataframe)
 
 
 # TODO: Define and implement the neural model in the 'model.py' module.
