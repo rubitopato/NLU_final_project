@@ -29,14 +29,17 @@ class PreProcessor:
         }
         return action_dict.get(action, None) 
 
-    def encode_relations(self, dataset_array):
-        relation_dict = self.get_relation_dict(dataset_array)
-
+    def encode_relations(self, dataset_array, first=False):
+        if first:
+            relation_dict, relation_dict_inversed = self.get_relation_dict(dataset_array)
+            self.relation_dict = relation_dict
+            self.relation_dict_inversed = relation_dict_inversed
+        
         encoded_datasets = []
         for df in dataset_array:
             if 'relation' in df.columns:
                 df = df.copy()
-                df['relation'] = df['relation'].map(relation_dict)
+                df['relation'] = df['relation'].map(self.relation_dict)
             encoded_datasets.append(df)
         
         return encoded_datasets
@@ -47,11 +50,11 @@ class PreProcessor:
         for df in dataset_array:
             if 'relation' in df.columns:
                 unique_relations.update(df['relation'].unique())
-        print(len(unique_relations))
         relation_dict = {relation: index for index, relation in enumerate(unique_relations)}
+        relation_dict_inversed = {index: relation for index, relation in enumerate(unique_relations)}
         
         self.relation_dict_length = len(relation_dict)
-        return relation_dict
+        return relation_dict, relation_dict_inversed
 
     def get_training_sentences(self, dataset_array):
         phrases = []
