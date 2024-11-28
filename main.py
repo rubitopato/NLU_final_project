@@ -22,7 +22,7 @@ Read and convert CoNLLU files into tree structures
 reader = ConlluReader()
 train_trees = read_file(reader,path="dataset/en_partut-ud-train_clean.conllu", inference=False)
 dev_trees = read_file(reader,path="dataset/en_partut-ud-dev_clean.conllu", inference=False)
-test_trees = read_file(reader,path="dataset/en_partut-ud-test_clean.conllu", inference=False)
+test_trees = read_file(reader,path="dataset/en_partut-ud-test_clean.conllu", inference=True)
 
 """
 We remove the non-projective sentences from the training and development set,
@@ -32,7 +32,7 @@ We don't remove them from test set set, because for those we only will do infere
 """
 train_trees = reader.remove_non_projective_trees(train_trees)
 dev_trees = reader.remove_non_projective_trees(dev_trees)
-test_trees = reader.remove_non_projective_trees(test_trees)
+# test_trees = reader.remove_non_projective_trees(test_trees)
 # print(train_trees)
 # print(train_trees)
 print ("Total training trees after removing non-projective sentences", len(train_trees))
