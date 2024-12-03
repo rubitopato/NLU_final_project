@@ -5,6 +5,7 @@ from .state import State
 import numpy as np
 import pandas as pd
 import keras
+import copy
 
 def dividir_array_en_mitades(array):
     mitad = len(array) // 2
@@ -47,7 +48,7 @@ class ParserMLP:
                  relations_size: int = 38, actions_size: int = 4,
                  n_top: int = 3, hidden_dim: int = 64,
                  
-                 epochs: int = 1, batch_size: int = 64):
+                 epochs: int = 2, batch_size: int = 64):
         """
         Initializes the ParserMLP class with the specified dimensions and training parameters.
 
@@ -70,12 +71,12 @@ class ParserMLP:
         self.relations_size = relations_size
 
         #Inputs layers
-        inputs_words = keras.layers.Input(shape = (2*n_top,))
-        inputs_pos = keras.layers.Input(shape = (2*n_top,))
+        inputs_words = keras.layers.Input(shape = (6,))
+        inputs_pos = keras.layers.Input(shape = (6,))
 
         # #Embedding layers
-        embedding_words = keras.layers.Embedding(input_dim = 6320, output_dim = 128, input_length=6) (inputs_words)
-        embedding_pos = keras.layers.Embedding(input_dim = 6320, output_dim = 128, input_length=6) (inputs_pos)
+        embedding_words = keras.layers.Embedding(input_dim = word_vocab_size, output_dim = 128, input_length=6) (inputs_words)
+        embedding_pos = keras.layers.Embedding(input_dim = word_vocab_size, output_dim = 128, input_length=6) (inputs_pos)
         embedding_total = keras.layers.Concatenate()([embedding_words,embedding_pos])
 
         flaten = keras.layers.Flatten()(embedding_total)
@@ -160,7 +161,9 @@ class ParserMLP:
 
         # 1. Initialize: Create the initial state for each sentence
         batch_states = [self.arc_eager.create_initial_state(sentence) for sentence in sents]
-        
+        batch_states_dict = {i: self.arc_eager.create_initial_state(sentence) for i, sentence in enumerate(sents)}
+        batch_final_arcs = [[] for _ in range(len(batch_states))]
+
         while batch_states:
             # 2. Feature Representation: Convert states to their corresponding list of features
             batch_state_feats, batch_state_pos = [], []
@@ -172,7 +175,7 @@ class ParserMLP:
 
             # 3. Model Prediction: Predict the next transition and dependency type for all current states
             batch_transitions, batch_dependencies = self.model.predict(
-                [np.array(batch_state_feats), np.array(batch_state_pos)], batch_size=2
+                [np.array(batch_state_feats), np.array(batch_state_pos)]
             )
             
             # 4. Transition Sorting: For each prediction, sort transitions by likelihood
@@ -199,13 +202,22 @@ class ParserMLP:
             # 6. State Update: Apply the selected transitions to update the states
             new_states = []
             for i, state in enumerate(batch_states):
+                wanted_key = [key for key, value in batch_states_dict.items() if value == state]
                 self.arc_eager.apply_transition(state, Transition(batch_valid_transitions[i], batch_valid_dependencies[i]))
+                batch_states_dict[wanted_key[0]] = state
                 new_states.append(state)
 
             # 7. Final State Check: Remove sentences that have reached a final state
-            batch_states = [state for state in new_states if not self.arc_eager.final_state(state)]
+            batch_states = []
+            for state in new_states:
+                if self.arc_eager.final_state(state):
+                    wanted_key = [key for key, value in batch_states_dict.items() if value == state]
+                    batch_final_arcs[wanted_key[0]] = state.A
+                else:
+                    batch_states.append(state)
 
         # 8. Iterative Process: Repeat steps 2 to 7 until all sentences have reached their final state.
+        return batch_final_arcs
         
 
 if __name__ == "__main__":

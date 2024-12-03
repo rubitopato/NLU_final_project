@@ -77,6 +77,9 @@ class State(object):
 
         return stack + buffer + arcs
     
+    def __eq__(self, value: object) -> bool:
+        return self.S == value.S and self.B == value.B
+    
 
 if __name__ == "__main__":
 

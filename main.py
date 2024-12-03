@@ -5,6 +5,9 @@ import keras
 import pandas as pd
 from classes.model import ParserMLP
 
+#Create and instance of the ArcEager
+arc_eager = ArcEager()
+
 def read_file(reader, path, inference):
     trees = reader.read_conllu_file(path, inference)
     print(f"Read a total of {len(trees)} sentences from {path}")
@@ -13,6 +16,16 @@ def read_file(reader, path, inference):
         print (token)
     print ()
     return trees
+            
+def change_token_information(sentence_arcs, sentence):
+    sentence_final = []
+    for token in sentence:
+        for arc in sentence_arcs:
+            if token._id == arc[2]:
+                token._head = arc[0]
+                token._dep = arc[1]
+        sentence_final.append(token)
+    return sentence_final[1:]
     
 """
 ALREADY IMPLEMENTED
@@ -38,9 +51,6 @@ dev_trees = reader.remove_non_projective_trees(dev_trees)
 print ("Total training trees after removing non-projective sentences", len(train_trees))
 print ("Total dev trees after removing non-projective sentences", len(dev_trees))
 print ("Total test trees after removing non-projective sentences", len(test_trees))
-
-#Create and instance of the ArcEager
-arc_eager = ArcEager()
 
 
 print ("\n ------ TODO: Implement the rest of the assignment ------")
@@ -73,12 +83,18 @@ encoded_dev_set = pre_processor.encode_data(dev_set)
 full_training_dataframe = pd.concat(encoded_training_set, ignore_index=True)
 full_dev_dataframe = pd.concat(encoded_dev_set, ignore_index=True)
 
-model = ParserMLP()
+model = ParserMLP(pre_processor.word_index_length, pre_processor.relation_dict_length)
 
 model.train(full_training_dataframe, full_dev_dataframe)
 
-model.run(test_trees[:2], pre_processor)
-
+batch_final_arcs = model.run(test_trees, pre_processor)
+for i, sentence_arcs in enumerate(batch_final_arcs):
+    final_sentence = change_token_information(sentence_arcs, test_trees[i])
+    with open('dataset/output.conllu', 'a') as archivo:
+        for token in final_sentence:
+            archivo.write(str(token) + '\n')
+        archivo.write('\n')
+            
 
 # TODO: Define and implement the neural model in the 'model.py' module.
 # 1. Train the model on the generated training dataset.
