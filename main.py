@@ -1,10 +1,12 @@
 from classes.conllu_reader import ConlluReader
 from classes.algorithm import ArcEager
 from classes.preprocessor import PreProcessor
-import keras
+import numpy as np
 import pandas as pd
 from classes.model import ParserMLP
 from classes.postprocessor import PostProcessor
+
+np.random.seed(2)
 
 # #Create and instance of the ArcEager
 arc_eager = ArcEager()
@@ -66,7 +68,7 @@ pre_processor = PreProcessor()
 training_set = pre_processor.create_dataset(arc_eager=arc_eager, data_trees=train_trees)
 
 # 3. Utilize the same 'oracle' function to generate development samples for model tuning and evaluation.
-dev_set = pre_processor.create_dataset(arc_eager, dev_trees[:10])
+dev_set = pre_processor.create_dataset(arc_eager, dev_trees)
 
 # TODO: Implement the 'state_to_feats' function in the Sample class.
 # This function should convert the current parser state into a list of features for use by the neural model classifier.
@@ -94,6 +96,7 @@ model.train(full_training_dataframe, full_dev_dataframe)
 # 3. Conduct inference on the test set with the trained model.
 # 4. Save the parsing results of the test set in CoNLLU format for further analysis.
 batch_final_arcs = model.run(test_trees, pre_processor)
+
 for i, sentence_arcs in enumerate(batch_final_arcs):
     final_sentence = change_token_information(sentence_arcs, test_trees[i])
     with open('dataset/output.conllu', 'a') as archivo:
@@ -110,7 +113,7 @@ post_processor = PostProcessor()
 
 reader = ConlluReader()
 print ("An example of a corrupted tree, before postprocessing:")
-post_processing_path = "dataset/output.conllu"
+post_processing_path = "dataset/corrupted_output.conllu"
 ill_trees = reader.read_conllu_file(post_processing_path)
 
 # 3. Process the file: trees = postprocessor.postprocess(path)
@@ -121,5 +124,6 @@ processed_trees = post_processor.postprocess(post_processing_path)
 with open('dataset/output_fixed.conllu', 'w') as archivo:
     for tree in processed_trees:
         for token in tree:
-            archivo.write(str(token) + "\n")
-    archivo.write('\n')
+            if str(token)[0] != "0":
+                archivo.write(str(token) + "\n")
+        archivo.write('\n')
