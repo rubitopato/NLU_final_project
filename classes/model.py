@@ -83,8 +83,8 @@ class ParserMLP:
 
         # #Dense and outputs layers
         dense = keras.layers.Dense(128, activation='relu')(flaten)
-        outputs_actions = keras.layers.Dense(actions_size, activation='softmax')(dense)
-        outputs_relations = keras.layers.Dense(44, activation='softmax')(dense)
+        outputs_actions = keras.layers.Dense(actions_size, activation='softmax', name="Actions")(dense)
+        outputs_relations = keras.layers.Dense(44, activation='softmax', name = "Relations")(dense)
         
         self.model = keras.models.Model(inputs=[inputs_words, inputs_pos], outputs=[outputs_actions,outputs_relations])
         self.model.compile(
@@ -118,6 +118,9 @@ class ParserMLP:
         )
         
         return history
+    
+    def save(self, name):
+        self.model.save(f"{name}.h5")
 
     def evaluate(self, samples: list['Sample']):
         """
