@@ -1,12 +1,9 @@
 from classes.conllu_reader import ConlluReader
 from classes.algorithm import ArcEager
 from classes.preprocessor import PreProcessor
-import numpy as np
 import pandas as pd
 from classes.model import ParserMLP
 from classes.postprocessor import PostProcessor
-
-np.random.seed(2)
 
 # #Create and instance of the ArcEager
 arc_eager = ArcEager()
@@ -99,7 +96,7 @@ batch_final_arcs = model.run(test_trees, pre_processor)
 
 for i, sentence_arcs in enumerate(batch_final_arcs):
     final_sentence = change_token_information(sentence_arcs, test_trees[i])
-    with open('dataset/output.conllu', 'a') as archivo:
+    with open('dataset/corrupted_output.conllu', 'a') as archivo:
         for token in final_sentence:
             archivo.write(str(token) + '\n')
         archivo.write('\n')
@@ -121,7 +118,7 @@ print("\nSTARTING POSTPROCESSING\n")
 processed_trees = post_processor.postprocess(post_processing_path)
 
 # 4. Save the processed trees to a new output file.
-with open('dataset/output_fixed.conllu', 'w') as archivo:
+with open('dataset/output_fixed.conllu', 'a') as archivo:
     for tree in processed_trees:
         for token in tree:
             if str(token)[0] != "0":
